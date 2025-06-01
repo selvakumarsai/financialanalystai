@@ -13,17 +13,14 @@ from langgraph.prebuilt import create_react_agent
 st.set_page_config(page_title="Financial Analyst AI", layout="centered")
 
 st.title("📈 Financial Analyst AI")
-st.markdown("Enter your OpenAI API Key and OpenBB Personal Access Token to start analyzing financial data.")
 
-openai_api_key = st.text_input("Enter your OpenAI API Key:", type="password", help="Get your key from OpenAI platform.")
-openbb_pat = st.text_input("Enter your OpenBB Personal Access Token (PAT):", type="password", help="Get your PAT from OpenBB website.")
+openai_api_key = st.secrets["openai_api_key"]
+openbb_pat = st.secrets["openbb_pat"]
 
 if not openai_api_key or not openbb_pat:
-    st.warning("Please enter both your OpenAI API Key and OpenBB PAT to proceed.")
+    st.warning("Please configure both your OpenAI API Key and OpenBB PAT as secrets to proceed.")
     st.stop()
 
-# Set environment variables for API keys
-os.environ['OPENAI_API_KEY'] = openai_api_key
 
 # Initialize OpenBB
 try:
