@@ -4,5 +4,6 @@ langchain-community
 langchain_core
 langgraph
 yfinance
+openbb-charting
 openbb[all]
 numpy==1.26.3
