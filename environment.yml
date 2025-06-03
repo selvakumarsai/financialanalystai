@@ -1,6 +1,7 @@
 langchain
 langchain-openai
 langchain-community
+langchain_core
 langgraph
 yfinance
 openbb[all]
