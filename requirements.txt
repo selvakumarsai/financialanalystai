@@ -4,6 +4,6 @@ langchain-openai==0.3.0
 langchain-community==0.3.14
 langgraph==0.2.66
 yfinance
-openbb==3.2.0
+openbb==2.3.1
 openbb[charting]
 numpy==1.23.4
