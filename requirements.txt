@@ -4,9 +4,5 @@ langchain-community==0.3.14
 langgraph==0.2.66
 yfinance==0.2.51
 openbb[all] 
-openbb-charting 
-pandas 
-pandas_ta
-numpy 
 
 
