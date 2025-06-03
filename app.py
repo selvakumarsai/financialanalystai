@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
-from numpy import NaN as npNaN
 #from openbb_charting import Charting
 #from openbb.app.model.charts.chart import ChartFormat
 
