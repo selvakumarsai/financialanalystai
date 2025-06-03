@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
-from openbb-core import obb
-from openbb-core.app.model.charts.chart import ChartFormat
+from openbb import obb
+from openbb.app.model.charts.chart import ChartFormat
 
 # Suppress warnings from OpenBB
 # import warnings
