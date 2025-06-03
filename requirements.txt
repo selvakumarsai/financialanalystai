@@ -6,5 +6,5 @@ yfinance==0.2.51
 openbb[all]
 openbb-technical
 openbb-devtools
-openbb-charting
+openbb[charting]
 numpy==1.26.3
