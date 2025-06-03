@@ -6,5 +6,5 @@ langgraph
 yfinance
 openbb==3.2.0
 openbb[charting]
-numpy==1.26.3
+numpy==1.23.4
 setuptools
