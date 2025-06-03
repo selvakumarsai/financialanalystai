@@ -6,5 +6,5 @@ yfinance==0.2.51
 openbb[all]
 openbb[charting]
 openbb[ta]
-numpy
+openbb[numpy]
 
