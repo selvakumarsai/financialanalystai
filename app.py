@@ -25,7 +25,7 @@ if not openai_api_key or not openbb_pat:
 
 # Initialize OpenBB
 try:
-    from openbb-core import obb
+    from openbb import obb
     obb.account.login(pat=openbb_pat)
     st.success("OpenBB and OpenAI initialized successfully!")
 except Exception as e:
