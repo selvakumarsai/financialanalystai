@@ -7,3 +7,4 @@ openbb[all]
 openbb-technical
 openbb-devtools
 openbb-charting
+numpy==1.22.4
