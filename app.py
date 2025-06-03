@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
-from openbb import obb
+
 from openbb_charting import Charting
 #from openbb.app.model.charts.chart import ChartFormat
 
@@ -27,7 +27,7 @@ if not openai_api_key or not openbb_pat:
 
 # Initialize OpenBB
 try:
-    #from openbb-core import obb
+    from openbb-core import obb
     obb.account.login(pat=openbb_pat)
     st.success("OpenBB and OpenAI initialized successfully!")
 except Exception as e:
