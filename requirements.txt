@@ -3,5 +3,5 @@ langchain-openai==0.3.0
 langchain-community==0.3.14
 langgraph==0.2.66
 yfinance==0.2.51
-#openbb_terminal
+openbb_terminal
 
