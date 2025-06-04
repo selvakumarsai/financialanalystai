@@ -1,7 +1,7 @@
 streamlit
 openbb
 openbb-core
-openbb-provider
+#openbb-provider
 langchain-core
 langgraph
 langchain-openai
