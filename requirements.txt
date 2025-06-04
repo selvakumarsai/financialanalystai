@@ -1,5 +1,5 @@
 streamlit
-openbb[--no-deps]
+openbb
 openbb[charting]
 openbb[yfinance]
 langchain-core
