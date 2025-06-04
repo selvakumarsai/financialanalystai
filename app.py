@@ -4,8 +4,7 @@ from datetime import datetime, timedelta
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
-import numpy
-print(numpy.nan)
+
 # --- Streamlit UI for API Key and PAT input ---
 st.set_page_config(page_title="Financial Analyst AI", layout="centered")
 
@@ -36,8 +35,6 @@ try:
     os.environ["OPENBB_USER_DATA_DIRECTORY"] = openbb_data_dir
     os.environ["OPENBB_LOG_DIRECTORY"] = openbb_log_dir
 
-    st.write(f"OpenBB User Data Directory: {os.environ['OPENBB_USER_DATA_DIRECTORY']}")
-    st.write(f"OpenBB Log Directory: {os.environ['OPENBB_LOG_DIRECTORY']}")
 
 except Exception as e:
     st.error(f"Error setting OpenBB environment variables or creating directories: {e}")
@@ -45,6 +42,8 @@ except Exception as e:
 
 # Initialize OpenBB
 try:
+    import numpy
+    print(numpy.nan)
     from openbb import obb
     # If using an older OpenBB version, warnings might need to be suppressed manually
     import warnings
