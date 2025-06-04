@@ -4,37 +4,51 @@ from datetime import datetime, timedelta
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
-
-# Suppress warnings from OpenBB (keep this commented for now unless needed)
-# import warnings
-# warnings.filterwarnings("ignore")
+from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
+from langchain_openai.chat_models import ChatOpenAI
+from langchain_experimental.utilities import PythonREPL
+from typing import Annotated, Literal, TypedDict
+from langgraph.graph import MessagesState, END, StateGraph, START
+from langgraph.graph.message import add_messages
+# Removed from getpass and IPython.display imports
 
 # --- Streamlit UI for API Key and PAT input ---
 st.set_page_config(page_title="Financial Analyst AI", layout="centered")
 
 st.title("📈 Financial Analyst AI")
 
-openai_api_key = st.secrets["openai_api_key"]
-openbb_pat = st.secrets["openbb_pat"]
+# Retrieve secrets from Streamlit's secrets management
+openai_api_key = st.secrets.get("openai_api_key")
+openbb_pat = st.secrets.get("openbb_pat")
+tavily_api_key = st.secrets.get("tavily_api_key")
 
-if not openai_api_key or not openbb_pat:
-    st.warning("Please configure both your OpenAI API Key and OpenBB PAT as secrets to proceed.")
+if not openai_api_key:
+    st.warning("Please configure your OpenAI API Key as a secret (openai_api_key).")
+    st.stop()
+if not openbb_pat:
+    st.warning("Please configure your OpenBB Personal Access Token as a secret (openbb_pat).")
+    st.stop()
+if not tavily_api_key:
+    st.warning("Please configure your Tavily Search API Key as a secret (tavily_api_key).")
     st.stop()
 
+
+# Set environment variables for the current session (crucial for OpenBB and LangChain)
+os.environ['OPENAI_API_KEY'] = openai_api_key
+os.environ['TAVILY_API_KEY'] = tavily_api_key
+
+
 # --- Configure OpenBB writable directories for Streamlit Community Cloud ---
-# This is crucial for Permission Denied errors and to ensure OpenBB can write its configs/cache.
+# This is crucial for Permission Denied errors.
+# Use a subdirectory within the app's root (/app/ on Streamlit Community Cloud)
+# which is writable. The /tmp directory is also usually writable.
 try:
-    # Use a subdirectory within the app's root (/app/ on Streamlit Community Cloud)
-    # which is writable. The /tmp directory is also usually writable.
-    # os.getcwd() typically points to /app/ in Streamlit Cloud deployments
     openbb_data_dir = os.path.join(os.getcwd(), ".openbb_data")
     openbb_log_dir = os.path.join(os.getcwd(), ".openbb_logs")
 
-    # Ensure these directories exist
     os.makedirs(openbb_data_dir, exist_ok=True)
     os.makedirs(openbb_log_dir, exist_ok=True)
 
-    # Set the environment variables for OpenBB
     os.environ["OPENBB_USER_DATA_DIRECTORY"] = openbb_data_dir
     os.environ["OPENBB_LOG_DIRECTORY"] = openbb_log_dir
 
@@ -45,17 +59,33 @@ except Exception as e:
     st.error(f"Error setting OpenBB environment variables or creating directories: {e}")
     st.stop()
 
+
 # Initialize OpenBB
 try:
-    # Only import obb after environment variables are set
     from openbb import obb
-    obb.account.login(pat=openbb_pat)
+    # The 'login' step can take a moment, especially if it's the first time
+    with st.spinner("Logging into OpenBB account..."):
+        obb.account.login(pat=openbb_pat)
     st.success("OpenBB and OpenAI initialized successfully!")
 except Exception as e:
-    st.error(f"Error initializing OpenBB or OpenAI. Please check your keys. Error: {e}")
+    st.error(f"Error initializing OpenBB or OpenAI. Please check your keys and OpenBB setup. Error: {e}")
     st.stop()
 
-# --- Define the tools (rest of your script is unchanged) ---
+# --- Initialize Tools ---
+tavily_search = TavilySearchAPIWrapper()
+repl = PythonREPL()
+
+@tool
+def search_web(query: str, num_results=10) -> list:
+    """Search the web for a query. Userful for general information or general news"""
+    results = tavily_search.raw_results(query=query,
+                                        max_results=num_results,
+                                        search_depth='advanced',
+                                        include_answer=False,
+                                        include_raw_content=True)
+    # Return only snippets or relevant parts to avoid overwhelming context
+    # You might want to refine this to only return the 'content' or 'snippet' of each result
+    return [{"title": r['title'], "snippet": r['content']} for r in results if 'content' in r and 'title' in r][:num_results]
 
 @tool
 def get_stock_ticker_symbol(stock_name: str) -> str:
@@ -65,7 +95,7 @@ def get_stock_ticker_symbol(stock_name: str) -> str:
         if res.to_df().empty:
             return f"No ticker symbol found for '{stock_name}'. Please check the spelling or try a different name."
         stock_ticker_details = res.to_df().to_markdown()
-        output = f"Here are the details of the company and its stock ticker symbol:\n\n{stock_ticker_details}"
+        output = """Here are the details of the company and its stock ticker symbol:\n\n""" + stock_ticker_details
         return output
     except Exception as e:
         return f"Error fetching stock ticker symbol for {stock_name}: {e}"
@@ -87,10 +117,10 @@ def get_stock_price_metrics(stock_ticker: str) -> str:
                                                       interval='1d', provider='yfinance')
         price_historical = res_historical.to_df().to_markdown() if not res_historical.to_df().empty else "No historical price data available."
 
-        output = (f"Here are the stock price metrics and data for the stock ticker symbol {stock_ticker}:\n\n"
-                  f"Price Quote Metrics:\n\n{price_quote}\n\n"
-                  f"Price Performance Metrics:\n\n{price_performance}\n\n"
-                  f"Price Historical Data:\n\n{price_historical}")
+        output = ("""Here are the stock price metrics and data for the stock ticker symbol """ + stock_ticker + """: \n\n""" +
+                  "Price Quote Metrics:\n\n" + price_quote +
+                  "\n\nPrice Performance Metrics:\n\n" + price_performance +
+                  "\n\nPrice Historical Data:\n\n" + price_historical)
         return output
     except Exception as e:
         return f"Error fetching stock price metrics for {stock_ticker}: {e}"
@@ -107,9 +137,9 @@ def get_stock_fundamental_indicator_metrics(stock_ticker: str) -> str:
                                                     limit=10, provider='yfinance')
         fundamental_metrics = res_metrics.to_df().to_markdown() if not res_metrics.to_df().empty else "No fundamental metrics available."
 
-        output = (f"Here are the fundamental indicator metrics and data for the stock ticker symbol {stock_ticker}:\n\n"
-                  f"Fundamental Ratios:\n\n{fundamental_ratios}\n\n"
-                  f"Fundamental Metrics:\n\n{fundamental_metrics}")
+        output = ("""Here are the fundamental indicator metrics and data for the stock ticker symbol """ + stock_ticker + """: \n\n""" +
+                  "Fundamental Ratios:\n\n" + fundamental_ratios +
+                  "\n\nFundamental Metrics:\n\n" + fundamental_metrics)
         return output
     except Exception as e:
         return f"Error fetching fundamental indicator metrics for {stock_ticker}: {e}"
@@ -120,13 +150,17 @@ def get_stock_news(stock_ticker: str) -> str:
     try:
         end_date = datetime.now()
         start_date = (end_date - timedelta(days=45)).strftime("%Y-%m-%d")
-        res_news = obb.news.company(symbol=stock_ticker, start_date=start_date, provider='tmx', limit=50)
+        res = obb.news.company(symbol=stock_ticker, start_date=start_date, provider='tmx', limit=50)
         
-        if res_news.to_df().empty:
+        if res.to_df().empty:
             return f"No recent news found for {stock_ticker}."
         
-        news = res_news.to_df()[['symbols', 'title']].to_markdown()
-        output = f"Here are the recent news headlines for the stock ticker symbol {stock_ticker}:\n\n{news}"
+        news_df = res.to_df()
+        # Filter for relevant columns
+        news_df = news_df[['symbols', 'title']]
+        news = news_df.to_markdown()
+
+        output = ("""Here are the recent news headlines for the stock ticker symbol """ + stock_ticker + """: \n\n""" + news)
         return output
     except Exception as e:
         return f"Error fetching stock news for {stock_ticker}: {e}"
@@ -146,116 +180,147 @@ def get_general_market_data() -> str:
         res_losers = obb.equity.discovery.losers(sort='desc', provider='yfinance', limit=15)
         price_losers = res_losers.to_df().to_markdown() if not res_losers.to_df().empty else "No top losers data available."
 
-        output = (f"Here's some detailed information of the stock market which includes most actively traded stocks, gainers and losers:\n\n"
-                  f"Most actively traded stocks:\n\n{most_active_stocks}\n\n"
-                  f"Top price gainers:\n\n{price_gainers}\n\n"
-                  f"Top price losers:\n\n{price_losers}")
+        output = ("""Here's some detailed information of the stock market which includes most actively traded stocks, gainers and losers:\n\n""" +
+                  "Most actively traded stocks:\n\n" + most_active_stocks +
+                  "\n\nTop price gainers:\n\n" + price_gainers +
+                  "\n\nTop price losers:\n\n" + price_losers)
         return output
     except Exception as e:
         return f"Error fetching general market data: {e}"
 
+@tool
+def python_repl_tool(
+    code: Annotated[str, "The python code to execute code, generate charts."],
+):
+    """Use this to execute python code and do math. If you want to see the output of a value,
+    you should print it out with `print(...)`. This is visible to the user.
+    Note: For plotting, the Python REPL cannot directly display interactive charts in Streamlit.
+    It can generate data that you then manually display in Streamlit, or return base64 encoded images.
+    For this application, assume it will return text output."""
+    try:
+        # The REPL will execute the code. If plotting, it will only generate text output.
+        result = repl.run(code)
+    except BaseException as e:
+        return f"Failed to execute. Error: {repr(e)}"
+    result_str = f"Successfully executed:\n```python\n{code}\n```\nCODE OUTPUT:\n {result}"
+    return result_str
+
 # --- Agent Setup ---
-from langchain_openai import ChatOpenAI
+# No change needed for this part from your original script, except making sure ChatOpenAI uses os.environ for API key
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
-chatgpt = ChatOpenAI(model="gpt-4o", temperature=0)
-tools = [get_stock_ticker_symbol,
-         get_stock_price_metrics,
-         get_stock_fundamental_indicator_metrics,
-         get_stock_news,
-         get_general_market_data]
+members = ["researcher", "coder"]
 
-AGENT_PREFIX = """Role: You are an AI stock market assistant tasked with providing investors
-with up-to-date, detailed information on individual stocks or advice based on general market data.
+SUPERVISOR_AGENT_PROMPT = f"""You are a supervisor tasked with managing a conversation between the following workers:
+                              {members}.
 
-Objective: Assist data-driven stock market investors by giving accurate,
-complete, but concise information relevant to their questions about individual
-stocks or general advice on useful stocks based on general market data and trends.
+                              Given the following user request, respond with the worker to act next.
+                              Each worker will perform a task and respond with their results and status.
+                              Analyze the results carefully and decide which worker to call next accordingly.
+                              Remember researcher agent can search for information and coder agent can code.
+                              When finished, respond with FINISH."""
 
-Capabilities: You are given a number of tools as functions. Use as many tools
-as needed to ensure all information provided is timely, accurate, concise,
-relevant, and responsive to the user's query.
 
-Starting Flow:
-Input validation. Determine if the input is asking about a specific company
-or stock ticker (Flow 2). If not, check if they are asking for general advice on potentially useful stocks
-based on current market data (Flow 1). Otherwise, respond in a friendly, positive, professional tone
-that you don't have information to answer as you can only provide financial advice based on market data.
-For each of the flows related to valid questions use the following instructions:
+class Router(TypedDict):
+    """Worker to route to next. If no workers needed, route to FINISH."""
+    next: Literal["researcher", "coder", "FINISH"]
 
-Flow 1:
-A. Market Analysis: If the query is valid and the user wants to get general advice on the market
-or stocks worth looking into for investing, leverage the general market data tool to get relevant data.
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+    next: str
 
-Flow 2:
-A. Symbol extraction. If the query is valid and is related to a specific company or companies,
-extract the company name or ticker symbol from the question.
-If a company name is given, look up the ticker symbol using a tool.
-If the ticker symbol is not found based on the company, try to
-correct the spelling and try again, like changing "microsfot" to "microsoft",
-or broadening the search, like changing "southwest airlines" to a shorter variation
-like "southwest" and increasing "limit" to 10 or more. If the company or ticker is
-still unclear based on the question or conversation so far, and the results of the
-symbol lookup, then ask the user to clarify which company or ticker.
+def supervisor_node(state: State) -> Command[Literal["researcher", "coder", "__end__"]]:
+    messages = [{"role": "system", "content": SUPERVISOR_AGENT_PROMPT},] + state["messages"]
+    response = llm.with_structured_output(Router).invoke(messages)
+    goto = response["next"]
+    if goto == "FINISH":
+        goto = END
 
-B. Information retrieval. Determine what data the user is seeking on the symbol
-identified. Use the appropriate tools to fetch the requested information. Only use
-data obtained from the tools. You may use multiple tools in a sequence. For instance,
-first determine the company's symbol, then retrieve price data using the symbol
-and fundamental indicator data etc. For specific queries only retrieve data using the most relevant tool.
-If detailed analysis is needed, you can call multiple tools to retrieve data first.
+    return Command(goto=goto, update={"next": goto})
 
-Response Generation Flow:
-Compose Response. Analyze the retrieved data carefully and provide a comprehensive answer to the user in a clear and concise format,
-in a friendly professional tone, emphasizing the data retrieved.
-If the user asks for recommendations you can give some recommendations
-but emphasize the user to do their own research before investing.
-When generating the final response in markdown,
-if there are special characters in the text, such as the dollar symbol,
-ensure they are escaped properly for correct rendering e.g $25.5 should become \$25.5
+# Create Financial Researcher Sub-Agent
+research_agent = create_react_agent(
+    llm, tools=[search_web,
+            get_stock_ticker_symbol,
+            get_stock_price_metrics,
+            get_stock_fundamental_indicator_metrics,
+            get_stock_news,
+            get_general_market_data], state_modifier="""You are a financial researcher who excels in searching the web and financial platforms and analyzing the data.
+                                                        DO NOT do any math or coding.
+                                                        Once your task is done report back to the supervisor."""
+)
 
-Example Interaction:
-User asks: "What is the PE ratio for Eli Lilly?"
-Chatbot recognizes 'Eli Lilly' as a company name.
-Chatbot uses symbol lookup to find the ticker for Eli Lilly, returning LLY.
-Chatbot retrieves the PE ratio using the proper function with symbol LLY.
-Chatbot responds: "The PE ratio for Eli Lilly (symbol: LLY) as of May 12, 2024 is 30."
+def research_node(state: State) -> Command[Literal["supervisor"]]:
+    result = research_agent.invoke(state)
+    return Command(
+        update={
+            "messages": [
+                HumanMessage(content=result["messages"][-1].content, name="researcher")
+            ]
+        },
+        goto="supervisor",
+    )
 
-Check carefully and only call the tools which are specifically named below.
-Only use data obtained from these tools.
-"""
+code_agent = create_react_agent(llm, tools=[python_repl_tool], state_modifier="""You are a coder who can write and run python code and also visualize charts and graphs.
+                                                                                 Only extract the most relevant data related to the question before running code or creating graphs.
+                                                                                 Once your task is done report back to the supervisor.""")
 
-SYS_PROMPT = SystemMessage(content=AGENT_PREFIX)
+# create node function for coder sub-agent
+def code_node(state: State) -> Command[Literal["supervisor"]]:
+    result = code_agent.invoke(state)
+    return Command(
+        update={
+            "messages": [
+                HumanMessage(content=result["messages"][-1].content, name="coder")
+            ]
+        },
+        goto="supervisor",
+    )
 
-financial_analyst = create_react_agent(model=chatgpt,
-                                       tools=tools,
-                                       state_modifier=SYS_PROMPT)
+builder = StateGraph(State)
+builder.add_edge(START, "supervisor")
+builder.add_node("supervisor", supervisor_node)
+builder.add_node("researcher", research_node)
+builder.add_node("coder", code_node)
+graph = builder.compile()
 
-# --- Streamlit App Logic ---
+# --- Streamlit App Logic (Interactive Execution) ---
 st.subheader("Ask your financial questions!")
-user_query = st.text_area("Enter your query here:", "Tell me how is Nvidia doing right now as a company and could I potentially invest in it?")
+user_query = st.text_area(
+    "Enter your query here:",
+    "Get the stock price details of nvidia and intel and display it as a line chart in the same plot comparing the trend"
+)
 
 if st.button("Get Analysis"):
     if user_query:
+        st.write("Initializing agent...")
+        final_response_content = ""
         with st.spinner("Analyzing your request..."):
             try:
                 # The stream method returns an iterator of events
-                # We need to iterate through it to get the final message
-                final_response = ""
-                for event in financial_analyst.stream(
-                    {"messages": [HumanMessage(content=user_query)]},
+                for event in graph.stream(
+                    {"messages": [("user", user_query)]},
+                    {"recursion_limit": 150},
                     stream_mode='values'
                 ):
-                    # The last message in the event is the one we want to display
-                    if event["messages"]:
-                        final_response = event["messages"][-1].content
+                    # Iterate through messages in the event and display them
+                    for message in event["messages"]:
+                        # Display intermediate steps or final result
+                        if message.content: # Ensure message has content
+                            if message.name:
+                                st.write(f"**{message.name.capitalize()}:** {message.content}")
+                            else:
+                                st.write(message.content) # Final response from user role
+                            final_response_content = message.content # Keep track of the last message
 
-                if final_response:
-                    st.markdown("### Analysis Result:")
-                    st.markdown(final_response)
+                if final_response_content:
+                    st.markdown("### Final Analysis Result:")
+                    st.markdown(final_response_content) # Display the final response
                 else:
                     st.error("Could not retrieve a response. Please try again or refine your query.")
 
             except Exception as e:
                 st.error(f"An error occurred during analysis: {e}")
+                st.exception(e) # Show full exception traceback for debugging
     else:
         st.warning("Please enter a query to get analysis.")
