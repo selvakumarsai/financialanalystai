@@ -1,3 +1,4 @@
+streamlit
 openbb[all]
 langchain-core
 langgraph
