@@ -1,5 +1,5 @@
 streamlit
-numpy==1.23.4
+numpy
 openbb==3.0.0
 langchain-core
 langgraph
