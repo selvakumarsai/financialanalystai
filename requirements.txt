@@ -1,5 +1,6 @@
 streamlit
-openbb[all]
+openbb
+openbb-charting
 langchain-core
 langgraph
 langchain-openai
