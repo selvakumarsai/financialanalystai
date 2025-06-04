@@ -2,7 +2,7 @@ setuptools
 langchain
 langchain-openai
 langchain-community
-langgraph
+langgraph==0.2.67
 yfinance
 openbb==3.2.2
 openbb[charting]
