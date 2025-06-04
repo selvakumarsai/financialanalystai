@@ -1,9 +1,9 @@
 streamlit
-numpy
-openbb==3.0.0
+openbb[all]
 langchain-core
 langgraph
 langchain-openai
 numpy
 pandas
+tavily-python
 
