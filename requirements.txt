@@ -1,9 +1,10 @@
 streamlit
-setuptools
 openbb
-#openbb[charting]
+openbb-core
+openbb-provider
 langchain-core
 langgraph
 langchain-openai
-yfinance
+numpy
+pandas
 
