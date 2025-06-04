@@ -5,6 +5,10 @@ from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
 
+# Suppress warnings from OpenBB (keep this commented for now unless needed)
+# import warnings
+# warnings.filterwarnings("ignore")
+
 # --- Streamlit UI for API Key and PAT input ---
 st.set_page_config(page_title="Financial Analyst AI", layout="centered")
 
@@ -18,14 +22,10 @@ if not openai_api_key or not openbb_pat:
     st.stop()
 
 # --- Configure OpenBB writable directories for Streamlit Community Cloud ---
-# This is crucial for Permission Denied errors.
-# Use Streamlit's temporary directory or a known writable path like /tmp or /app
-# Streamlit mounts your app code to /app, so relative paths work from there.
-# It's safer to use a temporary directory provided by Streamlit if available, or /tmp
-# For simplicity, let's use a subdirectory in the app's root which is writable.
+# This is crucial for Permission Denied errors and to ensure OpenBB can write its configs/cache.
 try:
-    # Use a subdirectory within the app's root, which is writable
-    # os.getcwd() will be /app/ on Streamlit Community Cloud
+    # Use a subdirectory within the app's root (/app/ on Streamlit Community Cloud)
+    # which is writable. The /tmp directory is also usually writable.
     openbb_data_dir = os.path.join(os.getcwd(), ".openbb_data")
     openbb_log_dir = os.path.join(os.getcwd(), ".openbb_logs")
 
@@ -35,6 +35,8 @@ try:
     os.environ["OPENBB_USER_DATA_DIRECTORY"] = openbb_data_dir
     os.environ["OPENBB_LOG_DIRECTORY"] = openbb_log_dir
 
+    st.info(f"OpenBB User Data Directory: {os.environ['OPENBB_USER_DATA_DIRECTORY']}")
+    st.info(f"OpenBB Log Directory: {os.environ['OPENBB_LOG_DIRECTORY']}")
 
 except Exception as e:
     st.error(f"Error setting OpenBB environment variables or creating directories: {e}")
@@ -42,19 +44,13 @@ except Exception as e:
 
 # Initialize OpenBB
 try:
-    import numpy
-    print(numpy.nan)
+    # Only import obb after environment variables are set
     from openbb import obb
-    # If using an older OpenBB version, warnings might need to be suppressed manually
-    import warnings
-    warnings.filterwarnings("ignore", category=DeprecationWarning) # To ignore ChartFormat related warnings if they appear
-
     obb.account.login(pat=openbb_pat)
     st.success("OpenBB and OpenAI initialized successfully!")
 except Exception as e:
     st.error(f"Error initializing OpenBB or OpenAI. Please check your keys. Error: {e}")
     st.stop()
-
 
 # --- Define the tools (rest of your script is unchanged) ---
 
