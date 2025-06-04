@@ -1,8 +1,4 @@
-setuptools
-langchain
-langchain-openai
-langchain-community
-langgraph==0.2.66
-yfinance
-openbb==3.2.2
-openbb[charting]
+langchain-core==0.3.63
+langgraph==0.4.7
+openbb==4.4.0
+langchain-openai==0.3.18
