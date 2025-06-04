@@ -3,3 +3,4 @@ openbb[all]
 langchain-core
 langgraph
 langchain-openai
+numpy
