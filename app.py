@@ -5,11 +5,6 @@ from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
 
-
-# Suppress warnings from OpenBB
-# import warnings
-# warnings.filterwarnings("ignore")
-
 # --- Streamlit UI for API Key and PAT input ---
 st.set_page_config(page_title="Financial Analyst AI", layout="centered")
 
@@ -22,17 +17,46 @@ if not openai_api_key or not openbb_pat:
     st.warning("Please configure both your OpenAI API Key and OpenBB PAT as secrets to proceed.")
     st.stop()
 
+# --- Configure OpenBB writable directories for Streamlit Community Cloud ---
+# This is crucial for Permission Denied errors.
+# Use Streamlit's temporary directory or a known writable path like /tmp or /app
+# Streamlit mounts your app code to /app, so relative paths work from there.
+# It's safer to use a temporary directory provided by Streamlit if available, or /tmp
+# For simplicity, let's use a subdirectory in the app's root which is writable.
+try:
+    # Use a subdirectory within the app's root, which is writable
+    # os.getcwd() will be /app/ on Streamlit Community Cloud
+    openbb_data_dir = os.path.join(os.getcwd(), ".openbb_data")
+    openbb_log_dir = os.path.join(os.getcwd(), ".openbb_logs")
+
+    os.makedirs(openbb_data_dir, exist_ok=True)
+    os.makedirs(openbb_log_dir, exist_ok=True)
+
+    os.environ["OPENBB_USER_DATA_DIRECTORY"] = openbb_data_dir
+    os.environ["OPENBB_LOG_DIRECTORY"] = openbb_log_dir
+
+    st.write(f"OpenBB User Data Directory: {os.environ['OPENBB_USER_DATA_DIRECTORY']}")
+    st.write(f"OpenBB Log Directory: {os.environ['OPENBB_LOG_DIRECTORY']}")
+
+except Exception as e:
+    st.error(f"Error setting OpenBB environment variables or creating directories: {e}")
+    st.stop()
 
 # Initialize OpenBB
 try:
     from openbb import obb
+    # If using an older OpenBB version, warnings might need to be suppressed manually
+    import warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning) # To ignore ChartFormat related warnings if they appear
+
     obb.account.login(pat=openbb_pat)
     st.success("OpenBB and OpenAI initialized successfully!")
 except Exception as e:
     st.error(f"Error initializing OpenBB or OpenAI. Please check your keys. Error: {e}")
     st.stop()
 
-# --- Define the tools ---
+
+# --- Define the tools (rest of your script is unchanged) ---
 
 @tool
 def get_stock_ticker_symbol(stock_name: str) -> str:
@@ -236,4 +260,3 @@ if st.button("Get Analysis"):
                 st.error(f"An error occurred during analysis: {e}")
     else:
         st.warning("Please enter a query to get analysis.")
-
