@@ -3,6 +3,7 @@ openbb[all]
 langchain-core
 langgraph
 langchain-openai
+langchain_community
 numpy
 pandas
 tavily-python
