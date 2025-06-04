@@ -1,8 +1,10 @@
 streamlit
 setuptools
+numpy
+pandas
 openbb
 openbb[charting]
 langchain-core
 langgraph
 langchain-openai
-numpy
+
