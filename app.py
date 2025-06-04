@@ -26,12 +26,15 @@ if not openai_api_key or not openbb_pat:
 try:
     # Use a subdirectory within the app's root (/app/ on Streamlit Community Cloud)
     # which is writable. The /tmp directory is also usually writable.
+    # os.getcwd() typically points to /app/ in Streamlit Cloud deployments
     openbb_data_dir = os.path.join(os.getcwd(), ".openbb_data")
     openbb_log_dir = os.path.join(os.getcwd(), ".openbb_logs")
 
+    # Ensure these directories exist
     os.makedirs(openbb_data_dir, exist_ok=True)
     os.makedirs(openbb_log_dir, exist_ok=True)
 
+    # Set the environment variables for OpenBB
     os.environ["OPENBB_USER_DATA_DIRECTORY"] = openbb_data_dir
     os.environ["OPENBB_LOG_DIRECTORY"] = openbb_log_dir
 
