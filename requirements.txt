@@ -1,5 +1,7 @@
 streamlit
-openbb[all]
+openbb[--no-deps]
+openbb[charting]
+openbb[yfinance]
 langchain-core
 langgraph
 langchain-openai
