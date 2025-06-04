@@ -1,6 +1,6 @@
 streamlit
-openbb[all]
-openbb-core
+openbb --no-deps
+#openbb-core
 #openbb-provider
 langchain-core
 langgraph
