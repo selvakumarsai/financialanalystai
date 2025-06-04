@@ -1,7 +1,5 @@
 streamlit
-openbb --no-deps
-#openbb-core
-#openbb-provider
+openbb
 langchain-core
 langgraph
 langchain-openai
