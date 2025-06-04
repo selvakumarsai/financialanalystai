@@ -1,5 +1,5 @@
 streamlit
-openbb
+openbb[all]
 openbb-core
 #openbb-provider
 langchain-core
