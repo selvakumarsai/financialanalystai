@@ -2,7 +2,7 @@ streamlit
 setuptools
 pandas_ta
 openbb
-openbb[charting]
+#openbb[charting]
 langchain-core
 langgraph
 langchain-openai
