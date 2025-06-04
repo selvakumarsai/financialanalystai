@@ -6,4 +6,3 @@ langgraph==0.2.66
 yfinance
 openbb==3.2.2
 openbb[charting]
-numpy==1.23.4
