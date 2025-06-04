@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
-
+import numpy
+print(numpy.nan)
 # --- Streamlit UI for API Key and PAT input ---
 st.set_page_config(page_title="Financial Analyst AI", layout="centered")
 
