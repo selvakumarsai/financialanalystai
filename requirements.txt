@@ -1,4 +1,5 @@
 streamlit
+setuptools
 openbb
 openbb[charting]
 langchain-core
