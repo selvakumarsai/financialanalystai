@@ -1,9 +1,9 @@
 streamlit
 setuptools
-pandas_ta
 openbb
 #openbb[charting]
 langchain-core
 langgraph
 langchain-openai
+yfinance
 
