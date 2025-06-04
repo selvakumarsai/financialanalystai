@@ -4,6 +4,7 @@ langchain-core
 langgraph
 langchain-openai
 langchain_community
+langchain_experimental
 numpy
 pandas
 tavily-python
