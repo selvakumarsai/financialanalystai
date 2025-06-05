@@ -1,6 +1,6 @@
 setuptools
 streamlit
-openbb
+openbb==4.0.1
 openbb[charting]
 openbb[yfinance]
 langchain-core
