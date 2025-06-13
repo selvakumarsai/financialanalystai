@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 setuptools = "*"
 openbb = "*"
-openbb-core = "==1.4.7"
+openbb-core = "*"
 langchain-core = "*"
 langgraph = "*"
 langchain-openai = "*"
