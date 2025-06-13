@@ -16,5 +16,3 @@ tavily-python = "*"
 numpy = ">=1.26.0,<2.0.0"  # Pin to NumPy 1.x series for Python 3.12 compatibility.
 pandas = ">=2.2.0"          # Ensure a recent Pandas version for Python 3.12.
 
-[requires]
-python_version = "3.11"
