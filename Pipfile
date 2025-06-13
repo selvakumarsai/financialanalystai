@@ -5,7 +5,8 @@ name = "pypi"
 
 [packages]
 setuptools = "*"
-openbb = "==4.0.1"
+#openbb = "==4.0.1"
+openbb[all] = "*"
 langchain-core = "*"
 langgraph = "*"
 langchain-openai = "*"
