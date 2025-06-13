@@ -8,17 +8,12 @@ name = "pypi"
 
 [packages]
 setuptools
-streamlit
 openbb = "==4.0.1"
-openbb[charting]
-openbb[yfinance]
 langchain-core
 langgraph
 langchain-openai
 langchain_community
 langchain_experimental
-numpy
-pandas
 tavily-python
 numpy> = "=1.26.0,<2.0.0" # Pin to NumPy 1.x series for Python 3.12 compatibility.
 pandas = ">=2.2.0"       # Ensure a recent Pandas version for Python 3.12.
